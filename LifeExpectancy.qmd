@@ -1,0 +1,205 @@
+---
+title: "Analysis of Country Status, Alcohol, and Expenditure as Factors of Life Expectancy" 
+author: "Destiny Cecchi Samuels"
+format: pdf
+execute: 
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r}
+library(tidyverse)
+library(dplyr)
+library(janitor)
+library(car)
+library(performance)
+library(kableExtra)
+library(patchwork)
+library(readr)
+
+life_expectancy_master<- read_csv("~/Documents/Classes/Spring2024/SDS 291 Multiple Regression/MRProject/Life Expectancy Data.csv") |>
+  clean_names() 
+life_expectancy_data <- life_expectancy_master |> 
+  select(country, year, status, life_expectancy, alcohol, total_expenditure) |> 
+  filter(!is.na(life_expectancy) & !is.na(alcohol) & !is.na(total_expenditure))
+
+```
+
+# Abstract
+
+This study aims to investigate the correlation between alcohol consumption and total expenditure, within the framework of a country's developmental status, as predictors of life expectancy. Utilizing data sourced from the World Health Organization and the United Nations database covering the period from 2000 to 2015, we employed a multiple regression model with life expectancy as the response variable. Through our analysis we found a nuanced relationship among alcohol consumption, total expenditure and a country’s development status; indicating that while higher alcohol consumption is generally associated with a lower life expectancy, the addition of total expenditure on healthcare moderates our analysis’ predictions. An additional finding that became apparent throughout the analysis process was the disparity of total expenditure on healthcare between developing and developed countries. These results provide important information by highlighting the intricate relationship between alcohol consumption, total spending, country status, and their combined effects on life expectancy.
+
+# Introduction
+In the age of a dying general global health, investigating and understanding the determinants of life expectancy is central to solving the global health crisis. Life expectancy rates give us an indication of not only a country’s health status, but it also gives us a glimpse of its social, economic, and healthcare system. With this analysis we aim to gain a deeper understanding of how all these components come together to paint a picture of a country’s and globe's health and therefore its life expectancy. We hope with the newfound knowledge to seek solutions on how to improve and bridge the gap among nations for better world health everywhere. 
+
+  Several studies also examining the relationship between life expectancy and alcohol consumption determine that the average person who drinks approximately 14 - 25 drinks a week can directly link that to a shorter life expectancy by 1 - 2 years, while individuals drinking approximately >25 drinks a week can expect their life expectancy to be shortened by about 4 - 5 years [^1]. We analyzed the predictors alcohol consumption, total expenditure, and country status, as well as their interaction term against life expectancy – which when f-testing against a reduced model, not including the interaction term, proved that the full model provided us with a better fit of the data. Thus, giving us a clearer, and more holistically accurate window into the semantics that make up a nation's life expectancy. 
+
+[^1]: “Risk Thresholds for Alcohol Consumption: Combined Analysis of Individual-Participant Data for 599 912 Current Drinkers in 83 Prospective Studies - the Lancet.” The Lancet, www.thelancet.com/journals/lancet/article/PIIS0140-6736(18)30134-X/fulltext. Accessed 9 May 2024. 
+
+# Methods
+
+### Data
+
+This study utilizes data from the "Life Expectancy (WHO)" dataset, sourced from the Global Health Observatory (GHO) data repository under the World Health Organization (WHO) available on Kaggle. Specifically, the dataset related to life expectancy and health factors for 193 countries was collected from the WHO data repository website, while corresponding economic data was obtained from the United Nations website. The dataset covers the years 2000 to 2015 and includes critical health-related factors representative of global health trends. The data collection process involved merging individual data files into a single dataset. Countries such as Vanuatu, Tonga, Togo, and Cabo Verde are not included in the dataset due to difficulties in obtaining data for these countries.
+
+### Variables
+
+Our analysis focuses on life expectancy as the response variable, which indicates the average lifespan based on a country's mortality rates (measured in years). This metric serves as a primary indicator of overall population health and longevity. The first predictor variable, country status, categorizes nations as 'Developed' or 'Developing' based on their economic and social development levels. This classification reflects the country's socioeconomic status, influencing life expectancy through factors like healthcare access, education, and income levels. Another predictor, alcohol consumption, measures the average per capita alcohol intake within a country. This continuous variable has diverse effects on health, influenced by consumption levels and other contextual factors. The final predictor, total expenditure, represents the proportion of government spending allocated to healthcare as a percentage of total government expenditure. Higher healthcare investment typically leads to enhanced
+
+### Statistical Methodology
+
+In order to assess the relationship between alcohol consumption, total expenditure, and life expectancy across different countries, a nested F-test was conducted seen in @tbl-2. This test compared the fit of two regression models: The full model, which included the main effects of alcohol consumption, total expenditure, and country status, as well as their interaction term. The reduced model, which included only the main effects of alcohol consumption, total expenditure, and country status. according to the nested F-test, the full model is indeed a significantly better fit than the reduced model, suggesting that including the interaction term (alcohol\*total_expenditure) improves the model's ability to explain the variation in life expectancy compared to the reduced model without the interaction term.
+
+# Results
+
+## Exploratory Data Analysis
+After filtering out non-applicable observations, we performed our analysis with a sample size of 2,698, with 2,218 from developing countries and 480 from developed countries, seen in @tbl-1. Developed nations showed an average life expectancy of 79 years, with total expenditure at 7.5% of GDP and alcohol consumption at 9.8 liters per capita. Conversely, developing nations had an average life expectancy of 67 years, total expenditure at 5.5%, and alcohol consumption at 3.5 liters per capita. Visual analysis revealed that developing countries appeared to have a positive correlation between alcohol consumption, total expenditure, and life expectancy. Conversely, in developed countries, rising alcohol consumption correlated with decreased life expectancy, while higher total expenditure was linked to increased life expectancy.  Additionally, examining alcohol consumption and total expenditure showed distinct patterns. In developing countries, higher alcohol consumption was accompanied by increased total expenditure. In contrast, developed countries exhibited relatively stable total expenditure, even with increasing alcohol consumption.
+
+```{r}
+## Scatter plot Life Expectancy, Alcohol, Status
+ life_expectancy_data|>
+  ggplot(aes(x = alcohol, y = life_expectancy, color = status)) +
+  geom_point(alpha = 0.5)+
+  labs(x = "Alochol (liters per capital)", 
+       y = "Life Expectancy (years)",
+       title = "Alcohol Consumption on Life Expectancy by Country Status",
+       color = "Country Status") +
+  geom_smooth(method = "lm", se=FALSE, formula=y~x) + theme_minimal()
+
+## Scatter plot Life Expectancy, Total Expenditure, Status
+life_expectancy_data |>
+  ggplot(aes(x = total_expenditure, y = life_expectancy, color = status)) + 
+  geom_point(alpha = 0.5) +  
+  labs(x = "Total Expenditure (%)", 
+       y = "Life Expectancy (years)",
+       title = "Total Expenditure on Life Expectancy by Country Status", 
+       color = "Country Status") +
+  geom_smooth(se=FALSE, formula=y~x) + theme_minimal()
+
+
+# Total Expenditure and Alcohol
+life_expectancy_data |>
+  ggplot(aes(x = alcohol, y = total_expenditure, color = status)) + 
+  geom_point(alpha = 0.5) +
+  geom_smooth(se=FALSE, formula=y~x) +   
+  labs(x = "Alochol (liters per capital)", 
+       y = "Total Expenditure (%)",
+       title = "Alcohol on Total Expenditure by Country Status",
+       color = "Country Status")+ theme_minimal() 
+
+```
+
+## Regression Analysis & Other Statistical Results
+In our regression analysis seen in @tbl-3, three coefficients were found as statistically significant based on the ANOVA results. Firstly, the intercept term revealed that in developed countries with zero alcohol consumption, the estimated average life expectancy stands at approximately 74.669 years (p-value: < 2.2e-16). With a 95% confidence level seen in @tbl-4, we estimate the true parameter to lie between 73.05 and 76.28 years. Secondly, the coefficient for "statusDeveloping" indicated that for each one-unit increase in country status, life expectancy decreases by around 8.8 years on average, holding all other predictors constant (p-value: < 2.2e-16). Our confidence interval suggests the true parameter falls between -9.8 and -7.7 years. Lastly, the significant coefficient for the interaction term (Alcohol:Total_Expenditure) revealed that as both alcohol consumption and total expenditure increase together, life expectancy is estimated to rise by about 0.046 years on average. With a 95% confidence level, the true parameter is expected to be within the range of 0.014 to 0.078 years. These findings highlight the complex relationship between country status, alcohol consumption, total expenditure, and their combined impact on life expectancy, providing valuable insights for further exploration.
+
+It's important to take these consideration with caution as our model did not pass Normality, or Linearity, and log transformation did not rectify it.  
+
+# Discussion
+  This study set out to analyze the relationship among alcohol consumption, total expenditure on healthcare, country status, and their combined impact on life expectancy. We saw how countries that are deemed as developed, are predicted to have an average life expectancy of approximately 74 years on average, with a 95% confidence of a true range between about 73 - 76 years old. Our analysis also shows, while holding all other predictors constant, for each one unit increase in country status, developing or/to developed, life expectancy is predicted to decrease about 8 years on average, with a 95% confidence of a true range between approximately 9 - 7 years less. Lastly, our interaction term tells us as alcohol consumption and total expenditures increase simultaneously, life expectancy is predicted to increase an approximate 0.046 years on average (while holding country status constant), with a 95% confidence of a true range between about 0.014 - 0.078 years. Our findings illuminated the importance of context in analyses like this: we see how when holding all other predictors constant, as alcohol consumption increases, life expectancy decreases. However, the interaction term shows us that by increasing total expenditures on healthcare, we can subset the decrease of life expectancy as alcohol consumption increases. This tells us how the more money a country invests into their health care system, the more alcohol their citizens can consume without it directly decreasing their life expectancy.  
+  
+  Despite the new found knowledge gained from our analysis, it is important to be transparent on what we could’ve improved throughout the analytical process and what limitations we were working with. For instance, the data we were working with relies on a third party website for its compilation and distribution, thus risking the chance of inaccurate or biased data. Additionally, although we did our best putting together an arrangement of predictor variables to get the best possible holistic view and predictions on our response variable, life expectancy, we still risk the chance of not including additional variables or interactions that can contribute to a better fit and predictions of our data. Despite these limitations and areas for improvement, our data analysis offers valuable insight and perspective on the ongoing debate of whether or not drinking alcohol is good or bad for you. Ultimately, our study can’t answer the question if alcohol is bad for you or not, but rather it provides something to consider when consuming alcohol. If the country you live in invests a fair amount into its public health system, then the effect of alcohol on your life expectancy is minimized. In summary, our research sheds light on the complex relationship among life expectancy, healthcare expenditure, and alcohol consumption.
+
+
+## R Appendix:
+```{r}
+#| label: tbl-1
+#| tbl-cap: "Descriptive Statistics"
+
+## Summary Stats
+
+descriptive_stats <- life_expectancy_data %>%
+  group_by(status) %>%
+  summarise( n = n(),
+    avg_life_ = mean(life_expectancy, na.rm = TRUE),
+    sd_life_ = sd(life_expectancy, na.rm = TRUE), 
+  avg_expend = mean(total_expenditure, na.rm = TRUE),
+    sd_expend = sd(total_expenditure, na.rm = TRUE), 
+  avg_alcohol = mean(alcohol, na.rm = TRUE),
+    sd_alcohol = sd(alcohol, na.rm = TRUE))
+
+kable(descriptive_stats)
+```
+
+```{r}
+#| label: tbl-2
+#| tbl-cap: "Model Comparison: Nested F-test"
+
+# Model Comparison
+
+## Full model
+full_model<- lm(life_expectancy ~ status + alcohol * total_expenditure, data = life_expectancy_data)
+
+## Reduced model
+reduced_model<- lm(life_expectancy ~ status + alcohol + total_expenditure, data = life_expectancy_data)
+
+# Nested F -Test
+anova_result <- anova(reduced_model, full_model) 
+kable(anova_result)
+## Full model is preferred and is used  
+```
+
+```{r}
+#| label: tbl-3
+#| tbl-cap: "Anova"
+
+## Run Full Model 
+kable(summary(full_model)$coefficients)
+```
+
+```{r}
+#| label: tbl-4
+#| tbl-cap: "95% Confidence Interval"
+kable(confint(full_model))
+```
+
+### **Linearity:** 
+```{r}
+##Linearity
+check_model(full_model, check = "linearity")
+```
+Linearity is not met, reference line is not flat and horizontal.
+
+## **Independence of observations:** 
+Independence is assumed to be met, as each country is independent of each other.
+
+## **Normality of residuals:** 
+```{r}
+plot(full_model, which = 2)
+```
+The dots should fall along the line, however, they don't, the QQ plot has heavy tails thus normality of residuals is not met. Diagnostic transformation did not We proceed analysis with caution.
+
+## **Equal variance of residuals:**
+```{r}
+# Check for homogeneity of variance
+residuals <- rstandard(full_model)
+
+# Calculate fitted values
+fitted <- fitted(full_model)
+
+# Create scale-location plot
+plot(fitted, sqrt(abs(residuals)), xlab = "Fitted values", ylab = "Square root of standardized residuals", main = "Scale-Location Plot")
+abline(h = 0, lty = 2)
+```
+Equal variance is met!
+
+## **Multicollinearity**
+```{r}
+check_collinearity(full_model)
+```
+Collinarity is high for our interaction term alcohol:total_expenditure, however this is expected since our model is an interaction model.
+
+## Log Transformation
+```{r}
+# Perform a log transformation on the response variable 'life_expectancy'
+life_expectancy_data$log_life_expectancy <- log(life_expectancy_data$life_expectancy)
+
+# Fit a linear regression model using the log-transformed response variable
+log_transformed_model <- lm(log_life_expectancy ~ status + alcohol*total_expenditure, data = life_expectancy_data)
+
+# Check the diagnostic plots for the log-transformed model
+plot(log_transformed_model, which = 1) ## Transformation did not help linearity or normality, so we run with our original variables
+plot(log_transformed_model, which = 2)
+```
+
+Log transformation did not help our model for Normality nor Linearity. Thus, we run our analysis with our original variables.
